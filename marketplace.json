@@ -1,0 +1,10 @@
+{
+    "add_ons": [
+        {
+            "github": "https://github.com/uaudio-labs/video-window"
+        },
+        {
+            "github": "https://github.com/uaudio-labs/midi-notation"
+        }
+    ]
+}
