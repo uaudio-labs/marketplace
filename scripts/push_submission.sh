@@ -6,7 +6,8 @@
 #     it reaches main, and comments a link that opens the pull request, filled in,
 #     for a maintainer to create (the uaudio-labs org does not let workflows create
 #     pull requests), or the pull request's own link once one is open.
-# A repo whose branch was pushed for another issue is not submitted twice.
+# A repo whose branch was pushed for another issue that is still open is not submitted
+# twice; once that issue is closed, a new submission takes the branch over.
 #
 # Needs: ISSUE (the issue number), RESULT (the result JSON), GH_TOKEN,
 # GITHUB_REPOSITORY, and a full checkout of main with this repo as origin.
@@ -33,7 +34,8 @@ closes="Closes #$ISSUE"
 # The branch's commit names the issue it was pushed for.
 if git rev-parse --verify --quiet "origin/$branch" >/dev/null; then
     other="$(git log -1 --format=%B "origin/$branch" | grep -oE 'Closes #[0-9]+' | head -n 1 || true)"
-    if [[ -n "$other" && "$other" != "$closes" ]]; then
+    if [[ -n "$other" && "$other" != "$closes" ]] &&
+       [[ "$(gh issue view "${other#Closes #}" --json state --jq .state)" == "OPEN" ]]; then
         gh issue comment "$ISSUE" --body "$full_name was already submitted in #${other#Closes #}."
         exit 0
     fi
