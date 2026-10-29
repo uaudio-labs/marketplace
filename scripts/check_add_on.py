@@ -256,8 +256,8 @@ def check(text, registry=None):
     if status != 200 or not info:
         problems.append(f"github.com/{named[0]}/{named[1]} was not found. Check the address and that the repository is public.")
         return result
-    if info.get("private"):
-        problems.append("The repository is private. The marketplace only lists public repositories.")
+    if info.get("private") or info.get("visibility", "public") != "public":   # private or internal
+        problems.append("The repository is not public. The marketplace only lists public repositories.")
         return result
     owner, repo = info["full_name"].split("/", 1)   # GitHub's own spelling
     result.update({
