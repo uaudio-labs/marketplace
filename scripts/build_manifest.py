@@ -4,7 +4,8 @@
 Each add_ons/<owner>.<repo>.json (lower case) holds one entry:
     { "github": "https://github.com/<owner>/<repo>" }
 with an optional "private": true for a repo only developers signed in to the GitHub
-CLI can read. The manifest lists them in file name order:
+CLI can read, and an optional "contact": the submitter's e-mail, for maintainers.
+The manifest lists them in file name order, without "contact", which LUNA doesn't use:
     { "add_ons": [ <entry>, ... ] }
 
 Usage:
@@ -12,7 +13,7 @@ Usage:
     build_manifest.py --check [add_ons]     # only checks the entries
 
 Exits 1, writing nothing, when an entry is not valid JSON, has fields other than
-"github" and "private", names no GitHub repo, or is not named after its repo.
+"github", "private" and "contact", names no GitHub repo, or is not named after its repo.
 """
 
 import json
@@ -20,9 +21,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check_add_on import repo_from_string, slug   # noqa: E402
+from check_add_on import is_email, repo_from_string, slug   # noqa: E402
 
-FIELDS = {"github", "private"}
+FIELDS = {"github", "private", "contact"}
+LISTED_FIELDS = ("github", "private")   # what goes in manifest.json
 
 
 def read_entries(folder):
@@ -53,7 +55,9 @@ def read_entries(folder):
             problems.append(f"{path}: name it {slug(*named)}.json")
         if "private" in entry and not isinstance(entry["private"], bool):
             problems.append(f"{path}: \"private\" is not true or false")
-        entries.append(entry)
+        if "contact" in entry and not is_email(entry["contact"]):
+            problems.append(f"{path}: \"contact\" is not an e-mail address")
+        entries.append({k: entry[k] for k in LISTED_FIELDS if k in entry})
     return entries, problems
 
 

@@ -13,11 +13,13 @@ Nothing in the release is run: each .lunaaddon is downloaded and its zip directo
 and manifest are read.
 
 Usage:
-    check_add_on.py https://github.com/<owner>/<repo>
+    check_add_on.py https://github.com/<owner>/<repo> [--contact <e-mail>]
     check_add_on.py --event "$GITHUB_EVENT_PATH" --registry add_ons --json result.json
 
-With --event, the repo is read from the "GitHub repository" field of the issue
-form (.github/ISSUE_TEMPLATE/submit-add-on.yml) in the issue event. With
+With --event, the repo and the submitter's contact e-mail are read from the
+"GitHub repository" and "Contact e-mail" fields of the issue form
+(.github/ISSUE_TEMPLATE/submit-add-on.yml) in the issue event; the e-mail is
+required then, and goes in the entry as "contact". With
 --registry, a repo already listed there is refused. With --json, the result is
 written for the workflow; the exit status is then 0 whether or not the repo
 passed, and 1 only when the check itself could not run.
@@ -38,6 +40,7 @@ import zipfile
 
 API = "https://api.github.com"
 FORM_FIELD = "GitHub repository"     # the label of the form's add_on_repository input
+CONTACT_FIELD = "Contact e-mail"     # the label of the form's email input
 MAX_DOWNLOAD_BYTES = 200 * 1024 * 1024
 MAX_MANIFEST_BYTES = 1024 * 1024     # as LUNA's kMaxManifestBytes
 USER_AGENT = "uaudio-labs-marketplace-check"
@@ -45,6 +48,12 @@ USER_AGENT = "uaudio-labs-marketplace-check"
 # GitHub's own limits on owner and repo names; "." and ".." are refused separately.
 OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
 REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
+# A plain address: no spaces, quotes, brackets or markdown, and a dotted domain.
+EMAIL_RE = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$")
+
+
+def is_email(text):
+    return isinstance(text, str) and len(text) <= 254 and bool(EMAIL_RE.match(text))
 
 
 def repo_from_string(text):
@@ -71,17 +80,22 @@ def slug(owner, repo):
     return f"{owner}.{repo}".lower()
 
 
-def repo_from_issue(event_path):
-    """The text of the form's repo field in an issues event, or None."""
+def field_from_issue(event_path, label):
+    """The text of the form field with this label in an issues event, or None."""
     with open(event_path, encoding="utf-8") as f:
         event = json.load(f)
     body = (event.get("issue") or {}).get("body") or ""
     # A form issue's body is "### <label>\n\n<value>\n\n### <next label>...".
-    match = re.search(r"^###\s+" + re.escape(FORM_FIELD) + r"\s*$(.*?)(?=^###\s|\Z)", body, re.MULTILINE | re.DOTALL)
+    match = re.search(r"^###\s+" + re.escape(label) + r"\s*$(.*?)(?=^###\s|\Z)", body, re.MULTILINE | re.DOTALL)
     if not match:
         return None
     value = match.group(1).strip()
     return None if value in ("", "_No response_") else value
+
+
+def repo_from_issue(event_path):
+    """The text of the form's repo field in an issues event, or None."""
+    return field_from_issue(event_path, FORM_FIELD)
 
 
 def listed_repos(registry):
@@ -243,10 +257,14 @@ def check_file(path, file_name, problems):
     return add_ons
 
 
-def check(text, registry=None):
+def check(text, registry=None, contact=None, contact_required=False):
     """The result for a submitted repo URL: ok, problems, and what the workflow needs."""
     result = {"ok": False, "input": text or "", "problems": [], "files": []}
     problems = result["problems"]
+    if contact is None and contact_required:
+        problems.append("Enter a contact e-mail.")
+    elif contact is not None and not is_email(contact):
+        problems.append("The contact e-mail is not an e-mail address. Enter it as name@example.com.")
     named = repo_from_string(text)
     if not named:
         problems.append("This is not the address of a GitHub repository. Enter it as https://github.com/owner/repository.")
@@ -267,6 +285,8 @@ def check(text, registry=None):
         "branch": f"submit/{owner}-{repo}".lower(),
         "entry": {"github": f"https://github.com/{owner}/{repo}"},
     })
+    if is_email(contact):
+        result["entry"]["contact"] = contact
     if result["slug"] in listed_repos(registry):
         problems.append(f"{info['full_name']} is already in the marketplace. A new release is listed without submitting it again.")
         return result
@@ -334,14 +354,18 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("repo", nargs="?", help="https://github.com/<owner>/<repo>")
     parser.add_argument("--event", help="an issues event (GITHUB_EVENT_PATH) to read the repo from")
+    parser.add_argument("--contact", help="the submitter's e-mail, for the entry (read from the issue with --event)")
     parser.add_argument("--registry", help="the add_ons folder, to refuse a repo already listed")
     parser.add_argument("--json", help="write the result here")
     args = parser.parse_args()
     if bool(args.repo) == bool(args.event):
         parser.error("give a repo URL or --event")
 
+    if args.event and args.contact:
+        parser.error("--contact is read from the issue with --event")
     text = repo_from_issue(args.event) if args.event else args.repo
-    result = check(text, args.registry)
+    contact = field_from_issue(args.event, CONTACT_FIELD) if args.event else args.contact
+    result = check(text, args.registry, contact, contact_required=bool(args.event))
     result["comment"] = markdown(result)
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:

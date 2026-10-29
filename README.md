@@ -21,7 +21,7 @@ Later releases are listed automatically, so you only submit once.
 
 ### What is checked
 
-The repository is public and not already listed, and its latest release has at least one
+The contact e-mail is an e-mail address. The repository is public and not already listed, and its latest release has at least one
 `.lunaaddon`. Each `.lunaaddon` is a zip whose shallowest `manifest.json` (outside `__MACOSX`)
 declares at least one Add On with `name`, `id`, exactly one of `html` and `url`, and `width` and
 `height` when it opens in a window (the default `target`). The `html` and `icon` files it names
@@ -38,8 +38,10 @@ python3 scripts/check_add_on.py https://github.com/<owner>/<repo>
 
 - Each listed repository is one file, `add_ons/<owner>.<repo>.json` (lower case), holding
   `{ "github": "https://github.com/<owner>/<repo>" }`, plus `"private": true` for a repository
-  only developers signed in to the GitHub CLI can read. One file per entry means submission pull
-  requests never conflict.
+  only developers signed in to the GitHub CLI can read. A submitted entry also holds
+  `"contact": "<e-mail>"`, the address from the submission issue, so maintainers know whom to
+  ask about the Add On; it is left out of `manifest.json`. One file per entry means submission
+  pull requests never conflict.
 - `manifest.json` is generated: the **Build manifest** workflow rebuilds it from `add_ons/` on
   every push to `main` (`python3 scripts/build_manifest.py`). Don't edit it by hand.
 - The **Submit Add On** workflow handles issues labelled `add-on-submission` (the issue form adds
