@@ -37,7 +37,7 @@ import urllib.request
 import zipfile
 
 API = "https://api.github.com"
-FORM_FIELD = "GitHub repository"     # the label of the form's "repo" input
+FORM_FIELD = "GitHub repository"     # the label of the form's add_on_repository input
 MAX_DOWNLOAD_BYTES = 200 * 1024 * 1024
 MAX_MANIFEST_BYTES = 1024 * 1024     # as LUNA's kMaxManifestBytes
 USER_AGENT = "uaudio-labs-marketplace-check"

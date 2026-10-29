@@ -14,7 +14,7 @@ body:
         the Add On appears in LUNA once Universal Audio merges it. Later releases are listed
         automatically; you don't need to submit again.
   - type: input
-    id: repo
+    id: add_on_repository
     attributes:
       label: GitHub repository
       description: The address of the repository whose releases carry your Add On.
