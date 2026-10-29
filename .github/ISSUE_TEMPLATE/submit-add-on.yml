@@ -21,6 +21,14 @@ body:
       placeholder: https://github.com/owner/repository
     validations:
       required: true
+  - type: input
+    id: email
+    attributes:
+      label: Contact e-mail
+      description: Where Universal Audio can reach you about this Add On. Anyone can read this issue, so the address is public.
+      placeholder: you@example.com
+    validations:
+      required: true
   - type: textarea
     id: notes
     attributes:
