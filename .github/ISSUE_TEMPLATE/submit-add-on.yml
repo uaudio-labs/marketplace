@@ -22,7 +22,7 @@ body:
     validations:
       required: true
   - type: input
-    id: email
+    id: contact_email
     attributes:
       label: Contact e-mail
       description: Where Universal Audio can reach you about this Add On. Anyone can read this issue, so the address is public.

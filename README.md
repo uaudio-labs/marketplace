@@ -11,8 +11,9 @@ repository's latest release.
 2. In LUNA, choose **SUBMIT** in Settings > ADD ONS > MARKETPLACE and enter the repository's
    address. LUNA checks the release, then opens a submission issue here, already filled in.
    You can also [open one yourself](../../issues/new?template=submit-add-on.yml).
-3. Enter a contact e-mail (the issue is public, so the address is too) and create the issue
-   (you need a GitHub account). A check runs on the release and comments on
+3. Enter a contact e-mail (the issue is public, so the address is too) and create the issue.
+   LUNA fills the e-mail in when your `.lunaaddon`'s `manifest.json` gives one as `"contact"`,
+   at its top level or on an Add On. You need a GitHub account. A check runs on the release and comments on
    the issue. If something is wrong, fix it and edit the issue to check it again.
 4. When the check passes, a branch adding your repository is pushed for review. Universal
    Audio reviews it; once it is merged, your Add On appears in LUNA and the issue closes.

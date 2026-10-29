@@ -40,7 +40,7 @@ import zipfile
 
 API = "https://api.github.com"
 FORM_FIELD = "GitHub repository"     # the label of the form's add_on_repository input
-CONTACT_FIELD = "Contact e-mail"     # the label of the form's email input
+CONTACT_FIELD = "Contact e-mail"     # the label of the form's contact_email input
 MAX_DOWNLOAD_BYTES = 200 * 1024 * 1024
 MAX_MANIFEST_BYTES = 1024 * 1024     # as LUNA's kMaxManifestBytes
 USER_AGENT = "uaudio-labs-marketplace-check"
