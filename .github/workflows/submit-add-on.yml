@@ -1,0 +1,46 @@
+# Checks an Add On submitted with the "Submit Add On" issue form and, when it passes,
+# pushes submit/<owner>-<repo> adding add_ons/<owner>.<repo>.json and comments a link
+# that opens its pull request for a maintainer (the uaudio-labs org does not let
+# workflows create pull requests). Merging it lists the Add On (build-manifest.yml)
+# and closes the issue.
+#
+# The issue is untrusted input: the workflow runs only this repo's main branch, reads
+# the issue from the event file (never through ${{ }} in a script), and the checker
+# downloads and parses the release without running anything in it.
+name: Submit Add On
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: write
+
+concurrency:
+  group: submit-add-on-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'add-on-submission')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check the submission
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -I scripts/check_add_on.py --event "$GITHUB_EVENT_PATH" --registry add_ons --json "$RUNNER_TEMP/result.json"
+
+      - name: Push the branch, or say what is wrong
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          RESULT: ${{ runner.temp }}/result.json
+        run: bash scripts/push_submission.sh

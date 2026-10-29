@@ -1,0 +1,44 @@
+# Rebuilds manifest.json, which LUNA reads, from add_ons/ whenever main changes, and
+# checks add_ons/ in pull requests. Edit add_ons/, never manifest.json.
+name: Build manifest
+
+on:
+  push:
+    branches: [main]
+    paths: ["add_ons/**", "scripts/build_manifest.py", "scripts/check_add_on.py"]
+  pull_request:
+    paths: ["add_ons/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-manifest-${{ github.ref }}
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -I scripts/build_manifest.py --check add_ons
+
+  build:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -I scripts/build_manifest.py add_ons manifest.json
+      - name: Commit manifest.json if it changed
+        run: |
+          if git diff --quiet -- manifest.json; then
+              echo "manifest.json is up to date"
+              exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Build manifest.json from add_ons/" -- manifest.json
+          git push origin HEAD:main

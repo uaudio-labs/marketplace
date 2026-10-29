@@ -1,0 +1,30 @@
+name: Submit Add On
+description: Ask for your LUNA Add On to be listed in the LUNA Add On Marketplace.
+title: "Add On: "
+labels: ["add-on-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        LUNA fills this in when you choose **Submit** in Settings > ADD ONS > MARKETPLACE.
+
+        Your repository must be public, and its latest release (not a draft or pre-release) must have
+        a `.lunaaddon` file attached. Once you create this issue, a check runs on that release and
+        comments here. If it passes, a branch adding your repository is pushed for review, and
+        the Add On appears in LUNA once Universal Audio merges it. Later releases are listed
+        automatically; you don't need to submit again.
+  - type: input
+    id: repo
+    attributes:
+      label: GitHub repository
+      description: The address of the repository whose releases carry your Add On.
+      placeholder: https://github.com/owner/repository
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the reviewer
+      description: Anything Universal Audio should know (optional).
+    validations:
+      required: false
