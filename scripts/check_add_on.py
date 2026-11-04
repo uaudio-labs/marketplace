@@ -19,7 +19,9 @@ Usage:
 With --event, the repo and the submitter's contact e-mail are read from the
 "GitHub repository" and "Contact e-mail" fields of the issue form
 (.github/ISSUE_TEMPLATE/submit-add-on.yml) in the issue event; the e-mail is
-required then, and goes in the entry as "contact". With
+required then, and goes in the entry as "contact". An issue the UA Universe
+Marketplace App opened for a builder (universe.uaudio.com's Publish) needs no
+e-mail and puts none in the public entry: Universe already knows who they are. With
 --registry, a repo already listed there is refused. With --json, the result is
 written for the workflow; the exit status is then 0 whether or not the repo
 passed, and 1 only when the check itself could not run.
@@ -49,6 +51,9 @@ USER_AGENT = "uaudio-labs-marketplace-check"
 OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
 REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 # A plain address: no spaces, quotes, brackets or markdown, and a dotted domain.
+# The private "UA Universe Marketplace" GitHub App (uaudio/universe-hub, backend/publish.py). GitHub sets an
+# issue's performed_via_github_app itself, so nobody else can claim it.
+UNIVERSE_APP_ID = 5545873
 EMAIL_RE = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$")
 
 
@@ -91,6 +96,14 @@ def field_from_issue(event_path, label):
         return None
     value = match.group(1).strip()
     return None if value in ("", "_No response_") else value
+
+
+def opened_by_universe(event_path):
+    """True when the UA Universe Marketplace App opened the issue for a builder."""
+    with open(event_path, encoding="utf-8") as f:
+        event = json.load(f)
+    app = (event.get("issue") or {}).get("performed_via_github_app") or {}
+    return app.get("id") == UNIVERSE_APP_ID
 
 
 def repo_from_issue(event_path):
@@ -364,8 +377,9 @@ def main():
     if args.event and args.contact:
         parser.error("--contact is read from the issue with --event")
     text = repo_from_issue(args.event) if args.event else args.repo
-    contact = field_from_issue(args.event, CONTACT_FIELD) if args.event else args.contact
-    result = check(text, args.registry, contact, contact_required=bool(args.event))
+    universe = bool(args.event) and opened_by_universe(args.event)
+    contact = None if universe else field_from_issue(args.event, CONTACT_FIELD) if args.event else args.contact
+    result = check(text, args.registry, contact, contact_required=bool(args.event) and not universe)
     result["comment"] = markdown(result)
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:
