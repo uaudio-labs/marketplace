@@ -1,6 +1,9 @@
 {
     "add_ons": [
         {
+            "github": "https://github.com/uaudio-labs/markers"
+        },
+        {
             "github": "https://github.com/uaudio-labs/midi-notation"
         },
         {
