@@ -1,0 +1,46 @@
+# Checks a takedown requested with the "Submit Take Down" issue form and, when the repo
+# is listed, pushes takedown/<owner>-<repo> removing add_ons/<owner>.<repo>.json and
+# comments a link that opens its pull request for a maintainer (the uaudio-labs org
+# does not let workflows create pull requests). Merging it removes the Add On from
+# manifest.json (build-manifest.yml) and closes the issue.
+#
+# The issue is untrusted input: the workflow runs only this repo's main branch, reads
+# the issue from the event file (never through ${{ }} in a script), and only removes a
+# file the checker found in add_ons/.
+name: Submit Take Down
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: write
+
+concurrency:
+  group: submit-take-down-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  takedown:
+    if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'add-on-takedown')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check the request
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -I scripts/check_takedown.py --event "$GITHUB_EVENT_PATH" --registry add_ons --json "$RUNNER_TEMP/result.json"
+
+      - name: Push the branch, or say what is wrong
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+          RESULT: ${{ runner.temp }}/result.json
+        run: bash scripts/push_takedown.sh

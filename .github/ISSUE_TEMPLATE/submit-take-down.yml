@@ -1,0 +1,37 @@
+name: Submit Take Down
+description: Ask for an Add On to be removed from the LUNA Add On Marketplace.
+title: "Take Down: "
+labels: ["add-on-takedown"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to ask for a repository's Add Ons to be removed from the marketplace, whether it
+        is your own or one you believe should not be listed.
+
+        Once you create this issue, a check confirms the repository is listed and comments here.
+        If it is, a branch removing the repository is pushed for review, and the Add On
+        disappears from LUNA once Universal Audio merges it.
+  - type: input
+    id: add_on_repository
+    attributes:
+      label: GitHub repository
+      description: The address of the listed repository to remove.
+      placeholder: https://github.com/owner/repository
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason
+      description: Why the Add On should be removed.
+    validations:
+      required: true
+  - type: input
+    id: contact_email
+    attributes:
+      label: Contact e-mail
+      description: Where Universal Audio can reach you about this request (optional). Anyone can read this issue, so the address is public.
+      placeholder: you@example.com
+    validations:
+      required: false
