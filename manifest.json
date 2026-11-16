@@ -1,6 +1,9 @@
 {
     "add_ons": [
         {
+            "github": "https://github.com/jhaydon111/luna-add-ons"
+        },
+        {
             "github": "https://github.com/uaudio-labs/markers"
         },
         {
