@@ -1,6 +1,9 @@
 {
     "add_ons": [
         {
+            "github": "https://github.com/fwilson-glitch/my-add-on"
+        },
+        {
             "github": "https://github.com/jhaydon111/luna-add-ons"
         },
         {
