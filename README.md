@@ -55,4 +55,11 @@ python3 scripts/check_add_on.py https://github.com/<owner>/<repo>
 - To accept a submission, follow the link in the issue's comment to create the pull request,
   review the Add On, and merge. To decline, close the issue with a comment and delete its
   `submit/` branch.
-- To remove an Add On, delete its file from `add_ons/`.
+- To remove an Add On, delete its file from `add_ons/`, or use a takedown request.
+- The **Submit Take Down** workflow handles issues labelled `add-on-takedown` (opened with
+  [the takedown form](../../issues/new?template=submit-take-down.yml)): it runs
+  `scripts/check_takedown.py`, which checks the repository is listed, then
+  `scripts/push_takedown.sh` creates `takedown/<owner>-<repo>` from `main` deleting the entry,
+  in a commit that closes the issue once it reaches `main`, and comments a link that opens the
+  pull request. The comment notes when the repository's owner opened the request. To decline,
+  close the issue with a comment and delete its `takedown/` branch.
