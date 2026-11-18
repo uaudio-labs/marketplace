@@ -10,7 +10,7 @@ Add On needs "name" (or the older "title"), "id", exactly one of "html" and "url
 and, when it opens in a window (the default "target"), "width" and "height".
 
 Nothing in the release is run: each .lunaaddon is downloaded and its zip directory
-and manifest are read.
+and manifest are read. The entry records the checked release's tag as "tag".
 
 Usage:
     check_add_on.py https://github.com/<owner>/<repo> [--contact <e-mail>]
@@ -50,15 +50,21 @@ USER_AGENT = "uaudio-labs-marketplace-check"
 # GitHub's own limits on owner and repo names; "." and ".." are refused separately.
 OWNER_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
 REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
-# A plain address: no spaces, quotes, brackets or markdown, and a dotted domain.
 # The private "UA Universe Marketplace" GitHub App (uaudio/universe-hub, backend/publish.py). GitHub sets an
 # issue's performed_via_github_app itself, so nobody else can claim it.
 UNIVERSE_APP_ID = 5545873
+# A release tag as git allows it in a ref name, without whitespace or control characters.
+TAG_RE = re.compile(r"^(?!.*\.\.)(?!.*@\{)(?![./-])[^\x00-\x20\x7f~^:?*\[\\]{1,255}(?<![./])(?<!\.lock)$")
+# A plain address: no spaces, quotes, brackets or markdown, and a dotted domain.
 EMAIL_RE = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$")
 
 
 def is_email(text):
     return isinstance(text, str) and len(text) <= 254 and bool(EMAIL_RE.match(text))
+
+
+def is_tag(text):
+    return isinstance(text, str) and bool(TAG_RE.match(text))
 
 
 def repo_from_string(text):
@@ -311,6 +317,12 @@ def check(text, registry=None, contact=None, contact_required=False):
         problems.append("The repository has no published release. Publish a release (not a draft or pre-release) with a .lunaaddon attached.")
         return result
     result["tag"] = release.get("tag_name", "")
+    if not is_tag(result["tag"]):
+        problems.append(f"The latest release's tag ({result['tag']!r}) is not a tag name the marketplace can list.")
+        return result
+    # The release checked here is the one the entry records; submit again for a new one.
+    entry = result["entry"]
+    result["entry"] = {"github": entry.pop("github"), "tag": result["tag"], **entry}
     assets = [a for a in release.get("assets", []) if a.get("name", "").lower().endswith(".lunaaddon")]
     if not assets:
         problems.append(f"The latest release ({result['tag']}) has no .lunaaddon file attached.")

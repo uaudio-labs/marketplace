@@ -2,10 +2,12 @@
 """Builds manifest.json, the list LUNA reads, from the entries in add_ons/.
 
 Each add_ons/<owner>.<repo>.json (lower case) holds one entry:
-    { "github": "https://github.com/<owner>/<repo>" }
-with an optional "private": true for a repo only developers signed in to the GitHub
-CLI can read, and an optional "contact": the submitter's e-mail, for maintainers.
-The manifest lists them in file name order, without "contact", which LUNA doesn't use:
+    { "github": "https://github.com/<owner>/<repo>", "tag": "<release tag>" }
+where "tag" is the tag of the release check_add_on.py checked when the Add On was
+submitted, with an optional "private": true for a repo only developers signed in to the
+GitHub CLI can read, and an optional "contact": the submitter's e-mail, for maintainers.
+The manifest lists them in file name order, with "github", "tag" and "private" but
+without "contact", which is for maintainers only:
     { "add_ons": [ <entry>, ... ] }
 
 Usage:
@@ -13,7 +15,8 @@ Usage:
     build_manifest.py --check [add_ons]     # only checks the entries
 
 Exits 1, writing nothing, when an entry is not valid JSON, has fields other than
-"github", "private" and "contact", names no GitHub repo, or is not named after its repo.
+"github", "tag", "private" and "contact", names no GitHub repo, has no valid "tag", or
+is not named after its repo.
 """
 
 import json
@@ -21,10 +24,10 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check_add_on import is_email, repo_from_string, slug   # noqa: E402
+from check_add_on import is_email, is_tag, repo_from_string, slug   # noqa: E402
 
-FIELDS = {"github", "private", "contact"}
-LISTED_FIELDS = ("github", "private")   # what goes in manifest.json
+FIELDS = {"github", "tag", "private", "contact"}
+LISTED_FIELDS = ("github", "tag", "private")   # what goes in manifest.json
 
 
 def read_entries(folder):
@@ -53,6 +56,10 @@ def read_entries(folder):
             problems.append(f"{path}: write \"github\" as https://github.com/{named[0]}/{named[1]}")
         if name[:-5] != slug(*named):
             problems.append(f"{path}: name it {slug(*named)}.json")
+        if "tag" not in entry:
+            problems.append(f"{path}: \"tag\" is missing (the release tag the Add On was submitted with)")
+        elif not is_tag(entry["tag"]):
+            problems.append(f"{path}: \"tag\" is not a release tag")
         if "private" in entry and not isinstance(entry["private"], bool):
             problems.append(f"{path}: \"private\" is not true or false")
         if "contact" in entry and not is_email(entry["contact"]):

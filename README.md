@@ -18,7 +18,9 @@ repository's latest release.
 4. When the check passes, a branch adding your repository is pushed for review. Universal
    Audio reviews it; once it is merged, your Add On appears in LUNA and the issue closes.
 
-Later releases are listed automatically, so you only submit once.
+The submission records the tag of the release that was checked. LUNA still lists each
+repository's latest release, so later releases appear without submitting again for now; in time,
+submit again for each new release.
 
 ### What is checked
 
@@ -38,11 +40,12 @@ python3 scripts/check_add_on.py https://github.com/<owner>/<repo>
 ## For maintainers
 
 - Each listed repository is one file, `add_ons/<owner>.<repo>.json` (lower case), holding
-  `{ "github": "https://github.com/<owner>/<repo>" }`, plus `"private": true` for a repository
-  only developers signed in to the GitHub CLI can read. A submitted entry also holds
+  `{ "github": "https://github.com/<owner>/<repo>", "tag": "<release tag>" }`, plus
+  `"private": true` for a repository only developers signed in to the GitHub CLI can read. A submitted entry also holds
   `"contact": "<e-mail>"`, the address from the submission issue, so maintainers know whom to
-  ask about the Add On; it is left out of `manifest.json`. One file per entry means submission
-  pull requests never conflict.
+  ask about the Add On; it is left out of `manifest.json`. `"tag"` is required: it is the tag
+  of the release `scripts/check_add_on.py` checked, and it is copied into `manifest.json`. One
+  file per entry means submission pull requests never conflict.
 - `manifest.json` is generated: the **Build manifest** workflow rebuilds it from `add_ons/` on
   every push to `main` (`python3 scripts/build_manifest.py`). Don't edit it by hand.
 - The **Submit Add On** workflow handles issues labelled `add-on-submission` (the issue form adds

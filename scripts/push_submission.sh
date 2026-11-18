@@ -2,8 +2,8 @@
 # Acts on check_add_on.py's result for a submission issue (submit-add-on.yml):
 #   - failed: comments the problems on the issue;
 #   - passed: (re)creates branch submit/<owner>-<repo> from main with
-#     add_ons/<owner>.<repo>.json, in a commit whose message closes the issue once
-#     it reaches main, and comments a link that opens the pull request, filled in,
+#     add_ons/<owner>.<repo>.json (with the checked release's tag), in a commit whose
+#     message closes the issue once it reaches main, and comments a link that opens the pull request, filled in,
 #     for a maintainer to create (the uaudio-labs org does not let workflows create
 #     pull requests), or the pull request's own link once one is open.
 # A repo whose branch was pushed for another issue that is still open is not submitted
@@ -21,6 +21,7 @@ if [[ "$(jq -r '.ok' "$RESULT")" != "true" ]]; then
 fi
 
 full_name="$(jq -r '.full_name' "$RESULT")"
+tag="$(jq -r '.tag' "$RESULT")"
 slug="$(jq -r '.slug' "$RESULT")"
 branch="$(jq -r '.branch' "$RESULT")"
 # GitHub's own spelling of the repo, which check_add_on.py lowered; refuse anything else.
@@ -46,7 +47,7 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git checkout -B "$branch" origin/main
 jq --indent 4 '.entry' "$RESULT" > "$file"
 git add "$file"
-git commit -m "Add $full_name" -m "$closes"
+git commit -m "Add $full_name $tag" -m "$closes"
 git push --force origin "$branch"
 
 pr_url="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')"

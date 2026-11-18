@@ -1,31 +1,40 @@
 {
     "add_ons": [
         {
-            "github": "https://github.com/fwilson-glitch/my-add-on"
+            "github": "https://github.com/fwilson-glitch/my-add-on",
+            "tag": "v0.1.0"
         },
         {
-            "github": "https://github.com/jhaydon111/luna-add-ons"
+            "github": "https://github.com/jhaydon111/luna-add-ons",
+            "tag": "0.1.1"
         },
         {
-            "github": "https://github.com/shawngrona/luna-comp-machine"
+            "github": "https://github.com/shawngrona/luna-comp-machine",
+            "tag": "v1.0.0"
         },
         {
-            "github": "https://github.com/uaudio-labs/markers"
+            "github": "https://github.com/uaudio-labs/markers",
+            "tag": "0.1.0"
         },
         {
-            "github": "https://github.com/uaudio-labs/midi-notation"
+            "github": "https://github.com/uaudio-labs/midi-notation",
+            "tag": "0.1.3"
         },
         {
-            "github": "https://github.com/uaudio-labs/moon-walker"
+            "github": "https://github.com/uaudio-labs/moon-walker",
+            "tag": "0.2.1"
         },
         {
-            "github": "https://github.com/uaudio-labs/studiolo"
+            "github": "https://github.com/uaudio-labs/studiolo",
+            "tag": "0.1.10"
         },
         {
-            "github": "https://github.com/uaudio-labs/video-window"
+            "github": "https://github.com/uaudio-labs/video-window",
+            "tag": "0.1.4"
         },
         {
-            "github": "https://github.com/vvozmitsel-uaudio/sound-browser"
+            "github": "https://github.com/vvozmitsel-uaudio/sound-browser",
+            "tag": "v0.2.1"
         }
     ]
 }
