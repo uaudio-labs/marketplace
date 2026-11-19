@@ -17,6 +17,10 @@
             "tag": "v1.0.0"
         },
         {
+            "github": "https://github.com/shawnist/listening-booth",
+            "tag": "v0.1.0"
+        },
+        {
             "github": "https://github.com/uaudio-labs/markers",
             "tag": "0.1.0"
         },
