@@ -9,6 +9,10 @@
             "tag": "0.1.1"
         },
         {
+            "github": "https://github.com/nohumans-com/midi-learn",
+            "tag": "0.4.1"
+        },
+        {
             "github": "https://github.com/shawngrona/luna-comp-machine",
             "tag": "v1.0.0"
         },
