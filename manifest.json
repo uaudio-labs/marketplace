@@ -25,6 +25,10 @@
             "tag": "0.4.1"
         },
         {
+            "github": "https://github.com/pablortiz/MidiDigger",
+            "tag": "Midi-Digger"
+        },
+        {
             "github": "https://github.com/shawngrona/luna-comp-machine",
             "tag": "v1.0.0"
         },
