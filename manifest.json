@@ -1,6 +1,10 @@
 {
     "add_ons": [
         {
+            "github": "https://github.com/cp666-dev/assistive-intelligence",
+            "tag": "v0.2.0"
+        },
+        {
             "github": "https://github.com/cp666-dev/interdaw",
             "tag": "1.0.0"
         },
