@@ -25,6 +25,10 @@
             "tag": "0.1.1"
         },
         {
+            "github": "https://github.com/midfield23/preset-finder",
+            "tag": "v0.2.2"
+        },
+        {
             "github": "https://github.com/nohumans-com/midi-learn",
             "tag": "0.4.1"
         },
