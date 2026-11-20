@@ -11,8 +11,8 @@ body:
         Your repository must be public, and its latest release (not a draft or pre-release) must have
         a `.lunaaddon` file attached. Once you create this issue, a check runs on that release and
         comments here. If it passes, a branch adding your repository is pushed for review, and
-        the Add On appears in LUNA once Universal Audio merges it. Later releases are listed
-        automatically; you don't need to submit again.
+        the Add On appears in LUNA once Universal Audio merges it. To list a newer release of an
+        Add On already in the marketplace, publish it and submit the repository again.
   - type: input
     id: add_on_repository
     attributes:

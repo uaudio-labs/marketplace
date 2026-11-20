@@ -22,7 +22,9 @@ With --event, the repo and the submitter's contact e-mail are read from the
 required then, and goes in the entry as "contact". An issue the UA Universe
 Marketplace App opened for a builder (universe.uaudio.com's Publish) needs no
 e-mail and puts none in the public entry: Universe already knows who they are. With
---registry, a repo already listed there is refused. With --json, the result is
+--registry, a repo already listed there is an update: it passes only when its latest
+release's tag differs from the listed one, and its entry keeps the listed fields
+("private", and "contact" unless a new e-mail is given). With --json, the result is
 written for the workflow; the exit status is then 0 whether or not the repo
 passed, and 1 only when the check itself could not run.
 
@@ -117,23 +119,27 @@ def repo_from_issue(event_path):
     return field_from_issue(event_path, FORM_FIELD)
 
 
-def listed_repos(registry):
-    """The lower-case owner.repo of every repo the registry folder lists."""
-    listed = set()
+def listed_entry(registry, repo_slug):
+    """The registry's entry for a repo (by file name, or by the repo its "github"
+    names), {} when it is listed by an entry that cannot be read, or None when it is
+    not listed."""
     if not registry or not os.path.isdir(registry):
-        return listed
-    for name in os.listdir(registry):
+        return None
+    found = None
+    for name in sorted(os.listdir(registry)):
         if not name.endswith(".json"):
             continue
-        listed.add(name[:-5].lower())
         try:
             with open(os.path.join(registry, name), encoding="utf-8") as f:
-                named = repo_from_string(json.load(f).get("github", ""))
-            if named:
-                listed.add(slug(*named))
+                entry = json.load(f)
+            named = repo_from_string(entry.get("github", ""))
         except (OSError, ValueError, AttributeError):
-            pass    # build_manifest.py reports a bad entry
-    return listed
+            entry, named = {}, None    # build_manifest.py reports a bad entry
+        if name[:-5].lower() == repo_slug or (named and slug(*named) == repo_slug):
+            if isinstance(entry, dict) and entry:
+                return entry
+            found = {}
+    return found
 
 
 def api_get(path):
@@ -304,11 +310,15 @@ def check(text, registry=None, contact=None, contact_required=False):
         "branch": f"submit/{owner}-{repo}".lower(),
         "entry": {"github": f"https://github.com/{owner}/{repo}"},
     })
+    listed = listed_entry(registry, result["slug"])
+    if listed is not None:
+        result["listed_tag"] = listed.get("tag") if isinstance(listed.get("tag"), str) else ""
+        if listed.get("private") is True:
+            result["entry"]["private"] = True
+        if isinstance(listed.get("contact"), str):
+            result["entry"]["contact"] = listed["contact"]
     if is_email(contact):
         result["entry"]["contact"] = contact
-    if result["slug"] in listed_repos(registry):
-        problems.append(f"{info['full_name']} is already in the marketplace. A new release is listed without submitting it again.")
-        return result
     if info.get("archived"):
         problems.append("The repository is archived.")
 
@@ -319,6 +329,10 @@ def check(text, registry=None, contact=None, contact_required=False):
     result["tag"] = release.get("tag_name", "")
     if not is_tag(result["tag"]):
         problems.append(f"The latest release's tag ({result['tag']!r}) is not a tag name the marketplace can list.")
+        return result
+    if "listed_tag" in result and result["listed_tag"] == result["tag"]:
+        problems.append(f"{info['full_name']} is already in the marketplace with its latest release ({result['tag']}). "
+                        "Publish a new release, then submit again.")
         return result
     # The release checked here is the one the entry records; submit again for a new one.
     entry = result["entry"]
@@ -353,7 +367,8 @@ def markdown(result):
     """The result as an issue comment, without the pull request's link."""
     lines = []
     if result["ok"]:
-        lines.append(f"✅ **{result['full_name']}** ({result.get('tag', '')}) passed the marketplace checks.")
+        update = f", updating {result['listed_tag'] or 'its listed entry'}" if "listed_tag" in result else ""
+        lines.append(f"✅ **{result['full_name']}** ({result.get('tag', '')}{update}) passed the marketplace checks.")
     else:
         what = result.get("full_name") or result["input"] or "The submission"
         lines.append(f"❌ **{what}** cannot be added to the marketplace yet:")
@@ -380,7 +395,7 @@ def main():
     parser.add_argument("repo", nargs="?", help="https://github.com/<owner>/<repo>")
     parser.add_argument("--event", help="an issues event (GITHUB_EVENT_PATH) to read the repo from")
     parser.add_argument("--contact", help="the submitter's e-mail, for the entry (read from the issue with --event)")
-    parser.add_argument("--registry", help="the add_ons folder, to refuse a repo already listed")
+    parser.add_argument("--registry", help="the add_ons folder, to treat a repo already listed as an update")
     parser.add_argument("--json", help="write the result here")
     args = parser.parse_args()
     if bool(args.repo) == bool(args.event):

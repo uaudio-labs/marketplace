@@ -18,13 +18,16 @@ repository's latest release.
 4. When the check passes, a branch adding your repository is pushed for review. Universal
    Audio reviews it; once it is merged, your Add On appears in LUNA and the issue closes.
 
-The submission records the tag of the release that was checked. LUNA still lists each
-repository's latest release, so later releases appear without submitting again for now; in time,
-submit again for each new release.
+The submission records the tag of the release that was checked. To list a new release of an
+Add On that is already in the marketplace, publish the release and submit the repository again:
+the check runs on the new release, and its branch updates the entry's tag (keeping its contact
+unless you give a new one). A repository whose latest release is the one already listed is
+refused. LUNA still lists each repository's latest release for now, so later releases also
+appear without submitting again.
 
 ### What is checked
 
-The contact e-mail is an e-mail address. The repository is public and not already listed, and its latest release has at least one
+The contact e-mail is an e-mail address. The repository is public, its latest release is not the one already listed, and that release has at least one
 `.lunaaddon`. Each `.lunaaddon` is a zip whose shallowest `manifest.json` (outside `__MACOSX`)
 declares at least one Add On with `name`, `id`, exactly one of `html` and `url`, and `width` and
 `height` when it opens in a window (the default `target`). The `html` and `icon` files it names
@@ -50,7 +53,8 @@ python3 scripts/check_add_on.py https://github.com/<owner>/<repo>
   every push to `main` (`python3 scripts/build_manifest.py`). Don't edit it by hand.
 - The **Submit Add On** workflow handles issues labelled `add-on-submission` (the issue form adds
   it): it runs `scripts/check_add_on.py`, then `scripts/push_submission.sh` creates
-  `submit/<owner>-<repo>` from `main` with the entry, in a commit whose message closes the issue
+  `submit/<owner>-<repo>` from `main` with the entry (for a repository already listed, the
+  entry with the new tag, keeping `"private"` and, unless the issue gives a new one, `"contact"`), in a commit whose message closes the issue
   once it reaches `main`, and comments a link that opens the pull request, already filled in.
   The workflow cannot create the pull request itself: the `uaudio-labs` organization does not
   let GitHub Actions create pull requests. Editing the issue checks it again and updates the

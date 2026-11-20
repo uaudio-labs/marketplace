@@ -2,7 +2,8 @@
 # Acts on check_add_on.py's result for a submission issue (submit-add-on.yml):
 #   - failed: comments the problems on the issue;
 #   - passed: (re)creates branch submit/<owner>-<repo> from main with
-#     add_ons/<owner>.<repo>.json (with the checked release's tag), in a commit whose
+#     add_ons/<owner>.<repo>.json (with the checked release's tag; for a repo already
+#     listed, its entry updated to that tag), in a commit whose
 #     message closes the issue once it reaches main, and comments a link that opens the pull request, filled in,
 #     for a maintainer to create (the uaudio-labs org does not let workflows create
 #     pull requests), or the pull request's own link once one is open.
@@ -22,6 +23,8 @@ fi
 
 full_name="$(jq -r '.full_name' "$RESULT")"
 tag="$(jq -r '.tag' "$RESULT")"
+listed_tag="$(jq -r '.listed_tag // empty' "$RESULT")"
+updating="$(jq -r 'has("listed_tag")' "$RESULT")"
 slug="$(jq -r '.slug' "$RESULT")"
 branch="$(jq -r '.branch' "$RESULT")"
 # GitHub's own spelling of the repo, which check_add_on.py lowered; refuse anything else.
@@ -47,16 +50,28 @@ git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 git checkout -B "$branch" origin/main
 jq --indent 4 '.entry' "$RESULT" > "$file"
 git add "$file"
-git commit -m "Add $full_name $tag" -m "$closes"
+if [[ "$updating" == "true" ]]; then
+    subject="Update $full_name to $tag"
+    title="Add On: $full_name $tag"
+    summary="Updates $full_name in the LUNA Add On Marketplace from ${listed_tag:-its listed entry} to $tag."
+else
+    subject="Add $full_name $tag"
+    title="Add On: $full_name"
+    summary="Adds $full_name to the LUNA Add On Marketplace."
+fi
+git commit -m "$subject" -m "$closes"
 git push --force origin "$branch"
 
 pr_url="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')"
 if [[ -n "$pr_url" ]]; then
     next="Pull request: $pr_url (updated)"
 else
-    title="Add On: $full_name"
-    body="$(printf 'Adds %s to the LUNA Add On Marketplace.\n\n%s\n\n%s\n' "$full_name" "$closes" "$comment")"
+    body="$(printf '%s\n\n%s\n\n%s\n' "$summary" "$closes" "$comment")"
     link="https://github.com/$GITHUB_REPOSITORY/compare/main...$branch?quick_pull=1&title=$(jq -rn --arg v "$title" '$v|@uri')&body=$(jq -rn --arg v "$body" '$v|@uri')"
-    next="Branch \`$branch\` is ready for review. Maintainers: [create the pull request]($link), review it and merge it to list the Add On."
+    listing="the Add On"
+    if [[ "$updating" == "true" ]]; then
+        listing="$tag"
+    fi
+    next="Branch \`$branch\` is ready for review. Maintainers: [create the pull request]($link), review it and merge it to list $listing."
 fi
 gh issue comment "$ISSUE" --body "$(printf '%s\n\n%s\nUniversal Audio reviews every submission before it appears in LUNA.\n' "$comment" "$next")"
