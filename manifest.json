@@ -21,6 +21,10 @@
             "tag": "v1.0.0"
         },
         {
+            "github": "https://github.com/fedetrillo/ab-monitor",
+            "tag": "v1.0.0"
+        },
+        {
             "github": "https://github.com/fedetrillo/compact-mixer",
             "tag": "v1.0.0"
         },
