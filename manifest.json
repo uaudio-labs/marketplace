@@ -77,6 +77,10 @@
             "tag": "v0.1.0"
         },
         {
+            "github": "https://github.com/shawnist/ox-tone-recall",
+            "tag": "v0.1.0"
+        },
+        {
             "github": "https://github.com/uaudio-labs/markers",
             "tag": "0.1.1"
         },
