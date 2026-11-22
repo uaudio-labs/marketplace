@@ -29,6 +29,10 @@
             "tag": "v1.0.0"
         },
         {
+            "github": "https://github.com/elderberry/luna-track-notes",
+            "tag": "v0.1.0"
+        },
+        {
             "github": "https://github.com/fedetrillo/ab-monitor",
             "tag": "v1.0.0"
         },
