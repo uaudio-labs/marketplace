@@ -53,6 +53,10 @@
             "tag": "v0.2.2"
         },
         {
+            "github": "https://github.com/neiliussattinius/swipe-comping",
+            "tag": "v0.2.2"
+        },
+        {
             "github": "https://github.com/nohumans-com/midi-learn",
             "tag": "0.4.1"
         },
