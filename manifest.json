@@ -81,6 +81,10 @@
             "tag": "v0.2.0"
         },
         {
+            "github": "https://github.com/johanze-ops/mix-snapshots",
+            "tag": "v0.1.0"
+        },
+        {
             "github": "https://github.com/johanze-ops/pushdesk-luna",
             "tag": "v0.1.0"
         },
