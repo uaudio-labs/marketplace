@@ -4,6 +4,12 @@
 # workflows create pull requests). Merging it lists the Add On (build-manifest.yml)
 # and closes the issue.
 #
+# When the repo has the MARKETPLACE_PUBLISH_TOKEN secret (a maintainer's token that can
+# write contents and pull requests here), the publish job does that itself: it opens
+# the pull request, waits for its checks and merges it. Because the merge is made with
+# that token rather than github.token, it triggers build-manifest.yml on main. Only
+# the publish job sees the token.
+#
 # The issue is untrusted input: the workflow runs only this repo's main branch, reads
 # the issue from the event file (never through ${{ }} in a script), and the checker
 # downloads and parses the release without running anything in it.
@@ -27,6 +33,10 @@ jobs:
     if: github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'add-on-submission')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      branch: ${{ steps.push.outputs.branch }}
+      title: ${{ steps.push.outputs.title }}
+      body: ${{ steps.push.outputs.body }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,8 +49,52 @@ jobs:
         run: python3 -I scripts/check_add_on.py --event "$GITHUB_EVENT_PATH" --registry add_ons --json "$RUNNER_TEMP/result.json"
 
       - name: Push the branch, or say what is wrong
+        id: push
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ github.event.issue.number }}
           RESULT: ${{ runner.temp }}/result.json
         run: bash scripts/push_submission.sh
+
+  publish:
+    needs: submit
+    if: needs.submit.outputs.branch != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions: {}
+    env:
+      GH_TOKEN: ${{ secrets.MARKETPLACE_PUBLISH_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      ISSUE: ${{ github.event.issue.number }}
+      BRANCH: ${{ needs.submit.outputs.branch }}
+      TITLE: ${{ needs.submit.outputs.title }}
+      BODY: ${{ needs.submit.outputs.body }}
+    steps:
+      - name: Open the pull request, wait for its checks and merge it
+        run: |
+          set -euo pipefail
+          if [[ -z "$GH_TOKEN" ]]; then
+              echo "No MARKETPLACE_PUBLISH_TOKEN; a maintainer opens and merges the pull request."
+              exit 0
+          fi
+          [[ "$BRANCH" =~ ^submit/[a-z0-9-]+-[a-z0-9._-]+$ ]] || { echo "unexpected branch '$BRANCH'" >&2; exit 1; }
+
+          pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [[ -z "$pr" ]]; then
+              url="$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$BODY")"
+              pr="${url##*/}"
+          fi
+          echo "Pull request #$pr"
+
+          # Checks take a moment to register on a new pull request or push.
+          for _ in $(seq 1 24); do
+              sleep 10
+              gh pr checks "$pr" >/dev/null 2>&1 && break
+              [[ $? -eq 8 ]] && break   # 8: checks registered, still pending
+          done
+          if ! gh pr checks "$pr" --watch --interval 15; then
+              gh issue comment "$ISSUE" --body "The checks on #$pr failed, so it was not merged automatically. A maintainer will take a look."
+              exit 1
+          fi
+
+          gh pr merge "$pr" --merge

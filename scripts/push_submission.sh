@@ -6,7 +6,8 @@
 #     listed, its entry updated to that tag), in a commit whose
 #     message closes the issue once it reaches main, and comments a link that opens the pull request, filled in,
 #     for a maintainer to create (the uaudio-labs org does not let workflows create
-#     pull requests), or the pull request's own link once one is open.
+#     pull requests), or the pull request's own link once one is open; and, through
+#     $GITHUB_OUTPUT, gives the publish job the branch and the pull request's title and body.
 # A repo whose branch was pushed for another issue that is still open is not submitted
 # twice; once that issue is closed, a new submission takes the branch over.
 #
@@ -62,11 +63,22 @@ fi
 git commit -m "$subject" -m "$closes"
 git push --force origin "$branch"
 
+body="$(printf '%s\n\n%s\n\n%s\n' "$summary" "$closes" "$comment")"
+# For the publish job, which opens and merges the pull request when the repo has
+# MARKETPLACE_PUBLISH_TOKEN.
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+    {
+        echo "branch=$branch"
+        echo "title=$title"
+        delim="EOF_$(openssl rand -hex 16)"
+        printf 'body<<%s\n%s\n%s\n' "$delim" "$body" "$delim"
+    } >> "$GITHUB_OUTPUT"
+fi
+
 pr_url="$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')"
 if [[ -n "$pr_url" ]]; then
     next="Pull request: $pr_url (updated)"
 else
-    body="$(printf '%s\n\n%s\n\n%s\n' "$summary" "$closes" "$comment")"
     link="https://github.com/$GITHUB_REPOSITORY/compare/main...$branch?quick_pull=1&title=$(jq -rn --arg v "$title" '$v|@uri')&body=$(jq -rn --arg v "$body" '$v|@uri')"
     listing="the Add On"
     if [[ "$updating" == "true" ]]; then
