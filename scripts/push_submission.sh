@@ -64,8 +64,7 @@ git commit -m "$subject" -m "$closes"
 git push --force origin "$branch"
 
 body="$(printf '%s\n\n%s\n\n%s\n' "$summary" "$closes" "$comment")"
-# For the publish job, which opens and merges the pull request when the repo has
-# the org's GitHub App (MARKETPLACE_APP_ID).
+# For the publish job, which opens and merges the pull request as the org's GitHub App.
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     {
         echo "branch=$branch"

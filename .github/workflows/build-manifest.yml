@@ -29,22 +29,19 @@ jobs:
   build:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    env:
-      APP_ID: ${{ secrets.MARKETPLACE_APP_ID }}
     steps:
-      # main only takes direct pushes from the org's GitHub App, so push with its token
-      # when the repo has it.
-      - name: Get a token from the App
-        id: app
-        if: env.APP_ID != ''
+      # main only takes direct pushes from the org's GitHub App, ua-marketplace-publisher,
+      # so check out (and push) with its token.
+      - name: Get a token for ua-marketplace-publisher
+        id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.MARKETPLACE_APP_ID }}
-          private-key: ${{ secrets.MARKETPLACE_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.PUBLISHER_APP_ID }}
+          private-key: ${{ secrets.PUBLISHER_APP_KEY }}
           permission-contents: write
       - uses: actions/checkout@v4
         with:
-          token: ${{ steps.app.outputs.token || github.token }}
+          token: ${{ steps.app-token.outputs.token }}
       - run: python3 -I scripts/build_manifest.py add_ons manifest.json
       - name: Commit manifest.json if it changed
         run: |
