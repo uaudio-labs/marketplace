@@ -61,6 +61,10 @@
             "tag": "0.1.1"
         },
         {
+            "github": "https://github.com/johanze-ops/luna-sample-browser",
+            "tag": "v0.2.0"
+        },
+        {
             "github": "https://github.com/luna-universe-community/universe-pulse-aa5e",
             "tag": "v1.0.0"
         },
