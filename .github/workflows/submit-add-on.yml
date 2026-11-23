@@ -4,11 +4,12 @@
 # workflows create pull requests). Merging it lists the Add On (build-manifest.yml)
 # and closes the issue.
 #
-# When the repo has the MARKETPLACE_PUBLISH_TOKEN secret (a maintainer's token that can
-# write contents and pull requests here), the publish job does that itself: it opens
-# the pull request, waits for its checks and merges it. Because the merge is made with
-# that token rather than github.token, it triggers build-manifest.yml on main. Only
-# the publish job sees the token.
+# When the repo has the MARKETPLACE_APP_ID and MARKETPLACE_APP_PRIVATE_KEY secrets (the
+# org's GitHub App, which can write contents, pull requests and issues here), the
+# publish job does that itself with a short-lived token from the App: it opens the
+# pull request, waits for its checks and merges it. Because the merge is made with
+# the App's token rather than github.token, it triggers build-manifest.yml on main.
+# Only the publish job sees the App's key.
 #
 # The issue is untrusted input: the workflow runs only this repo's main branch, reads
 # the issue from the event file (never through ${{ }} in a script), and the checker
@@ -63,18 +64,31 @@ jobs:
     timeout-minutes: 30
     permissions: {}
     env:
-      GH_TOKEN: ${{ secrets.MARKETPLACE_PUBLISH_TOKEN }}
-      GH_REPO: ${{ github.repository }}
-      ISSUE: ${{ github.event.issue.number }}
-      BRANCH: ${{ needs.submit.outputs.branch }}
-      TITLE: ${{ needs.submit.outputs.title }}
-      BODY: ${{ needs.submit.outputs.body }}
+      APP_ID: ${{ secrets.MARKETPLACE_APP_ID }}
     steps:
+      - name: Get a token from the App
+        id: app
+        if: env.APP_ID != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.MARKETPLACE_APP_ID }}
+          private-key: ${{ secrets.MARKETPLACE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
       - name: Open the pull request, wait for its checks and merge it
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          BRANCH: ${{ needs.submit.outputs.branch }}
+          TITLE: ${{ needs.submit.outputs.title }}
+          BODY: ${{ needs.submit.outputs.body }}
         run: |
           set -euo pipefail
           if [[ -z "$GH_TOKEN" ]]; then
-              echo "No MARKETPLACE_PUBLISH_TOKEN; a maintainer opens and merges the pull request."
+              echo "No MARKETPLACE_APP_ID; a maintainer opens and merges the pull request."
               exit 0
           fi
           [[ "$BRANCH" =~ ^submit/[a-z0-9-]+-[a-z0-9._-]+$ ]] || { echo "unexpected branch '$BRANCH'" >&2; exit 1; }

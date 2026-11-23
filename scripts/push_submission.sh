@@ -65,7 +65,7 @@ git push --force origin "$branch"
 
 body="$(printf '%s\n\n%s\n\n%s\n' "$summary" "$closes" "$comment")"
 # For the publish job, which opens and merges the pull request when the repo has
-# MARKETPLACE_PUBLISH_TOKEN.
+# the org's GitHub App (MARKETPLACE_APP_ID).
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     {
         echo "branch=$branch"

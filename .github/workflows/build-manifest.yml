@@ -1,5 +1,6 @@
 # Rebuilds manifest.json, which LUNA reads, from add_ons/ whenever main changes, and
-# checks add_ons/ in pull requests. Edit add_ons/, never manifest.json.
+# checks add_ons/ in every pull request (so the check can be required on main).
+# Edit add_ons/, never manifest.json.
 name: Build manifest
 
 on:
@@ -7,7 +8,6 @@ on:
     branches: [main]
     paths: ["add_ons/**", "scripts/build_manifest.py", "scripts/check_add_on.py"]
   pull_request:
-    paths: ["add_ons/**"]
   workflow_dispatch:
 
 permissions:
@@ -29,8 +29,22 @@ jobs:
   build:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      APP_ID: ${{ secrets.MARKETPLACE_APP_ID }}
     steps:
+      # main only takes direct pushes from the org's GitHub App, so push with its token
+      # when the repo has it.
+      - name: Get a token from the App
+        id: app
+        if: env.APP_ID != ''
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.MARKETPLACE_APP_ID }}
+          private-key: ${{ secrets.MARKETPLACE_APP_PRIVATE_KEY }}
+          permission-contents: write
       - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app.outputs.token || github.token }}
       - run: python3 -I scripts/build_manifest.py add_ons manifest.json
       - name: Commit manifest.json if it changed
         run: |
