@@ -69,6 +69,10 @@
             "tag": "v0.1.0"
         },
         {
+            "github": "https://github.com/johanze-ops/session-transpose",
+            "tag": "v0.1.1"
+        },
+        {
             "github": "https://github.com/luna-universe-community/universe-pulse-aa5e",
             "tag": "v1.0.0"
         },
