@@ -133,6 +133,10 @@
             "tag": "v1.0.0"
         },
         {
+            "github": "https://github.com/midfield23/Phases",
+            "tag": "v0.1.1"
+        },
+        {
             "github": "https://github.com/midfield23/preset-finder",
             "tag": "v0.2.2"
         },
