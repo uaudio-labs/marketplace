@@ -169,6 +169,10 @@
             "tag": "v0.1.3"
         },
         {
+            "github": "https://github.com/tyerexua/frosty-faders",
+            "tag": "v0.1.0"
+        },
+        {
             "github": "https://github.com/uaudio-labs/falling-notes",
             "tag": "0.2.0"
         },
