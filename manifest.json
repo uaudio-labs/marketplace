@@ -29,6 +29,10 @@
             "tag": "v1.0.0"
         },
         {
+            "github": "https://github.com/DrGoo1/StudioMind-MIDI-Drum-Editor",
+            "tag": "v0.2.19"
+        },
+        {
             "github": "https://github.com/elderberry/luna-track-notes",
             "tag": "v0.1.0"
         },
