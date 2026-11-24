@@ -61,6 +61,10 @@
             "tag": "V1.0.0"
         },
         {
+            "github": "https://github.com/fedetrillo/MIDI-Transform",
+            "tag": "V1.0.0"
+        },
+        {
             "github": "https://github.com/fedetrillo/Modulators",
             "tag": "V1.0.0"
         },
