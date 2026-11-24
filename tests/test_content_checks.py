@@ -139,6 +139,23 @@ class Rights(unittest.TestCase):
         self.assertFalse(c.ticked("- [ ] I made everything in this Add On"))
         self.assertFalse(c.ticked(None))
 
+    def event(self, issue):
+        path = os.path.join(tempfile.mkdtemp(), "event.json")
+        with open(path, "w") as f:
+            json.dump({"issue": issue}, f)
+        return path
+
+    def test_universe_is_recognised_by_its_bot_user(self):
+        # As GitHub sends the issues Universe opens: no performed_via_github_app.
+        bot = {"login": "ua-universe-marketplace[bot]", "id": c.UNIVERSE_BOT_ID, "type": "Bot"}
+        self.assertTrue(c.opened_by_universe(self.event({"user": bot, "performed_via_github_app": None})))
+        self.assertTrue(c.opened_by_universe(self.event({"performed_via_github_app": {"id": c.UNIVERSE_APP_ID}})))
+
+    def test_nobody_else_is_universe(self):
+        lookalike = {"login": "ua-universe-marketplace", "id": 12345, "type": "User"}
+        self.assertFalse(c.opened_by_universe(self.event({"user": lookalike})))
+        self.assertFalse(c.opened_by_universe(self.event({"user": {"id": c.UNIVERSE_BOT_ID, "type": "User"}})))
+
     def test_an_unticked_box_fails_before_anything_is_fetched(self):
         result = c.check("not a url", rights_confirmed=False)
         self.assertIn("Rights", result["problems"][0])

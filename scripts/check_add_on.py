@@ -64,6 +64,9 @@ REPO_RE = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 # The private "UA Universe Marketplace" GitHub App (uaudio/universe-hub, backend/publish.py). GitHub sets an
 # issue's performed_via_github_app itself, so nobody else can claim it.
 UNIVERSE_APP_ID = 5545873
+# The App opens issues as its own bot user (performed_via_github_app is then empty).
+# Only the App can act as that user, and a bot's id can't be taken by anyone else.
+UNIVERSE_BOT_ID = 350430415          # ua-universe-marketplace[bot]
 # A release tag as git allows it in a ref name, without whitespace or control characters.
 TAG_RE = re.compile(r"^(?!.*\.\.)(?!.*@\{)(?![./-])[^\x00-\x20\x7f~^:?*\[\\]{1,255}(?<![./])(?<!\.lock)$")
 # A plain address: no spaces, quotes, brackets or markdown, and a dotted domain.
@@ -182,8 +185,10 @@ def opened_by_universe(event_path):
     """True when the UA Universe Marketplace App opened the issue for a builder."""
     with open(event_path, encoding="utf-8") as f:
         event = json.load(f)
-    app = (event.get("issue") or {}).get("performed_via_github_app") or {}
-    return app.get("id") == UNIVERSE_APP_ID
+    issue = event.get("issue") or {}
+    app = issue.get("performed_via_github_app") or {}
+    user = issue.get("user") or {}
+    return app.get("id") == UNIVERSE_APP_ID or (user.get("type") == "Bot" and user.get("id") == UNIVERSE_BOT_ID)
 
 
 def repo_from_issue(event_path):
@@ -579,7 +584,8 @@ def main():
     text = repo_from_issue(args.event) if args.event else args.repo
     universe = bool(args.event) and opened_by_universe(args.event)
     contact = None if universe else field_from_issue(args.event, CONTACT_FIELD) if args.event else args.contact
-    # Universe has its builders accept its terms; a form issue asks for the Rights box.
+    # A form issue must tick the Rights box. Universe's issues have no box to tick (its
+    # Publish flow writes the issue), so they are exempt, as they are from the e-mail.
     rights = universe or not args.event or ticked(field_from_issue(args.event, RIGHTS_FIELD))
     result = check(text, args.registry, contact, contact_required=bool(args.event) and not universe,
                    rights_confirmed=rights)
