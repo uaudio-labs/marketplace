@@ -12,6 +12,15 @@ and, when it opens in a window (the default "target"), "width" and "height".
 Nothing in the release is run: each .lunaaddon is downloaded and its zip directory
 and manifest are read. The entry records the checked release's tag as "tag".
 
+The content checks then look for what a person should judge before the Add On is
+listed: profanity and slurs (rules/blocked_words.txt) in the repo's name and
+description, the release's name and notes, the Add Ons' names and the .lunaaddon's text
+files; other companies' brands (rules/trademarks.txt) in the repo's and Add Ons'
+names; audio, video, MIDI and sample files, bundled or embedded; and notices marking
+content confidential or not for distribution. Their findings ("review") never fail a
+submission; the workflow holds it for a maintainer instead of merging it. A form issue
+must also tick the "Rights" box, confirming the builder may share everything in it.
+
 Usage:
     check_add_on.py https://github.com/<owner>/<repo> [--contact <e-mail>]
     check_add_on.py --event "$GITHUB_EVENT_PATH" --registry add_ons --json result.json
@@ -60,6 +69,64 @@ TAG_RE = re.compile(r"^(?!.*\.\.)(?!.*@\{)(?![./-])[^\x00-\x20\x7f~^:?*\[\\]{1,2
 # A plain address: no spaces, quotes, brackets or markdown, and a dotted domain.
 EMAIL_RE = re.compile(r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$")
 
+# The content checks. What they find never fails a submission: it holds the submission
+# for a maintainer's review instead of letting it merge automatically, because a word
+# list or a file type is a hint, not proof. The rules are plain text in rules/.
+RIGHTS_FIELD = "Rights"              # the label of the form's rights checkboxes
+RULES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rules")
+UA_OWNERS = {"uaudio-labs", "uaudio"}   # Universal Audio's accounts, which may use its marks
+TEXT_EXTENSIONS = {".html", ".htm", ".js", ".mjs", ".cjs", ".ts", ".jsx", ".tsx", ".vue", ".css", ".json",
+                   ".map", ".webmanifest", ".md", ".txt", ".svg", ".xml", ""}
+MEDIA_EXTENSIONS = {
+    ".wav", ".wave", ".aif", ".aiff", ".aifc", ".caf", ".mp3", ".flac", ".ogg", ".oga", ".opus",
+    ".m4a", ".aac", ".wma",                                   # audio
+    ".mp4", ".m4v", ".mov", ".webm", ".avi", ".mkv",          # video
+    ".mid", ".midi",                                          # MIDI
+    ".sf2", ".sfz", ".nki", ".nkx", ".exs", ".rex", ".rx2",   # sample instruments
+}
+MAX_SCAN_BYTES = 8 * 1024 * 1024     # per text file
+MAX_SCAN_TOTAL = 64 * 1024 * 1024    # per .lunaaddon
+MAX_PLACES = 5                       # places listed per finding in the comment
+NOTICE_RE = re.compile(r"(?<![A-Za-z])(?:confidential|do not (?:re)?distribute|not for (?:re)?distribution|"
+                       r"internal use only|trade secret|unauthori[sz]ed (?:copying|reproduction|distribution))(?![A-Za-z])",
+                       re.IGNORECASE)
+MEDIA_URI_RE = re.compile(r"data:(?:audio|video)/", re.IGNORECASE)
+# How media files start, so a renamed one is found too: WAV and AIFF, MP3, FLAC, Ogg,
+# MIDI, and MP4/MOV/M4A.
+MEDIA_MAGIC_RE = re.compile(rb"^(?:RIFF....WAVE|FORM....AIF[FC]|ID3|fLaC|OggS|MThd|....ftyp)", re.DOTALL)
+# The same, base64-encoded at the start of an embedded run.
+MEDIA_BASE64_RE = re.compile(r"^(?:UklGR|Rk9STQ|SUQz|ZkxhQw|T2dnUw|TVRoZA|AAAA[A-Za-z0-9+/]{2}ZnR5c)")
+# Long base64 runs (embedded images and fonts) are blanked before the word checks, where
+# they would spell out short words by chance.
+BASE64_RUN_RE = re.compile(r"[A-Za-z0-9+/=]{200,}")
+
+
+def rule_pattern(file_name, endings=""):
+    """A case-insensitive whole-word pattern for the names in rules/<file_name>, where
+    a space in a name also matches "-", "_", "." or nothing ("Pro Tools", "pro_tools")."""
+    names = []
+    with open(os.path.join(RULES, file_name), encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                names.append(r"[\s_.-]*".join(re.escape(word) for word in re.split(r"[\s-]+", line)))
+    names.sort(key=len, reverse=True)
+    return re.compile(r"(?<![A-Za-z0-9])(?:" + "|".join(names) + ")" + endings + r"(?![A-Za-z0-9])", re.IGNORECASE)
+
+
+PROFANITY_RE = rule_pattern("blocked_words.txt", r"(?:s|es|ed|er|ers|ing|in)?")
+TRADEMARK_RE = rule_pattern("trademarks.txt", r"s?")
+
+REVIEW_REASONS = {   # finding kind: why it needs a person to look, in the order shown
+    "words": "Possible profanity or slurs (the words are masked)",
+    "url": "An Add On that loads its page from the web, whose content can't be checked",
+    "trademark": "Another company's brand or product name, which can suggest an endorsement",
+    "media_file": "Audio, video, MIDI or sample files, which may be someone else's recordings",
+    "media_uri": "Audio or video embedded in a text file",
+    "notice": "A notice marking content as confidential or not for distribution",
+    "unscanned": "Files that could not be scanned for these checks",
+}
+
 
 def is_email(text):
     return isinstance(text, str) and len(text) <= 254 and bool(EMAIL_RE.match(text))
@@ -91,6 +158,11 @@ def repo_from_string(text):
 def slug(owner, repo):
     """The registry's name for a repo: add_ons/<slug>.json, branch submit/<owner>-<repo>."""
     return f"{owner}.{repo}".lower()
+
+
+def ticked(value):
+    """True when a form's checkboxes field (its text in the issue) has a ticked box."""
+    return bool(re.search(r"^\s*[-*]\s*\[[xX]\]", value or "", re.MULTILINE))
 
 
 def field_from_issue(event_path, label):
@@ -196,7 +268,83 @@ def zip_path(manifest_path, relative):
     return joined
 
 
-def check_entry(entry, defaults, manifest_path, names, where, problems):
+def mask(word):
+    return word[0] + "*" * (len(word) - 1)
+
+
+def scan_text(text, where, findings, ua_owned=False, names=False):
+    """Records in findings (kind -> places) what in text needs a maintainer's review.
+    where names the text; a file's places get line numbers. names: text is a name, so
+    other companies' marks count too."""
+    numbered = "\n" in text
+
+    def add(kind, match, detail=""):
+        places = findings.setdefault(kind, [])
+        if len(places) <= MAX_PLACES * 4:   # enough to say "and more"
+            place = f"{where}:{text.count(chr(10), 0, match.start()) + 1}" if numbered else where
+            places.append(f"{place} ({detail})" if detail else place)
+
+    for match in BASE64_RUN_RE.finditer(text):
+        if MEDIA_BASE64_RE.match(match.group()):
+            add("media_uri", match)
+    text = BASE64_RUN_RE.sub(lambda m: " " * len(m.group()), text)
+
+    for match in PROFANITY_RE.finditer(text):
+        add("words", match, mask(match.group()))
+    for match in NOTICE_RE.finditer(text):
+        add("notice", match, match.group().lower())
+    for match in MEDIA_URI_RE.finditer(text):
+        add("media_uri", match)
+    if names and not ua_owned:
+        for match in TRADEMARK_RE.finditer(text):
+            add("trademark", match, match.group())
+
+
+def scan_archive(archive, file_name, findings, ua_owned=False):
+    """Scans a .lunaaddon's text files and lists its media files, without running anything."""
+    budget = MAX_SCAN_TOTAL
+    for info in archive.infolist():
+        name = info.filename
+        if info.is_dir() or name.startswith("__MACOSX/") or "/__MACOSX/" in name:
+            continue
+        extension = posixpath.splitext(name)[1].lower()
+        where = f"{file_name}/{name}"
+        text = extension in TEXT_EXTENSIONS
+        if text and (info.file_size > MAX_SCAN_BYTES or info.file_size > budget):
+            findings.setdefault("unscanned", []).append(f"{where} (too large)")
+            text = False
+        try:
+            with archive.open(info) as member:
+                # Only a text file is read whole; the zip's own size for it may be wrong.
+                data = member.read(MAX_SCAN_BYTES + 1 if text else 16)
+        except Exception:   # any damage or unsupported compression: hold it, never crash
+            findings.setdefault("unscanned", []).append(f"{where} (unreadable)")
+            continue
+        if extension in MEDIA_EXTENSIONS or MEDIA_MAGIC_RE.match(data[:16]):
+            findings.setdefault("media_file", []).append(where)
+        if not text:
+            continue
+        if len(data) > MAX_SCAN_BYTES:
+            findings.setdefault("unscanned", []).append(f"{where} (too large)")
+            continue
+        budget -= len(data)
+        scan_text(data.decode("utf-8", errors="replace"), where, findings, ua_owned)
+
+
+def content_review(findings):
+    """Why a submission needs a maintainer's review, one line per kind of finding."""
+    reasons = []
+    for kind, reason in REVIEW_REASONS.items():
+        places = findings.get(kind)
+        if not places:
+            continue
+        shown = ", ".join("`" + re.sub(r"[`\r\n]", "'", p) + "`" for p in places[:MAX_PLACES])
+        more = "" if len(places) <= MAX_PLACES else " and more" if len(places) > MAX_PLACES * 4 else f" and {len(places) - MAX_PLACES} more"
+        reasons.append(f"{reason}: {shown}{more}.")
+    return reasons
+
+
+def check_entry(entry, defaults, manifest_path, names, where, problems, findings=None):
     """One Add On of a manifest, as Rack_AddOn::AddEntry() reads it. Its summary, or None."""
     if not isinstance(entry, dict):
         problems.append(f"{where} is not an object.")
@@ -226,6 +374,8 @@ def check_entry(entry, defaults, manifest_path, names, where, problems):
             problems.append(f"{where}: \"{field}\" ({value}) must be a path inside the Add On.")
         elif path not in names:
             problems.append(f"{where}: \"{field}\" names {value}, which is not in the .lunaaddon.")
+    if "url" in entry and findings is not None:
+        findings.setdefault("url", []).append(where)
     return {
         "id": str(entry["id"]),
         "name": str(entry[name_field]),
@@ -235,10 +385,13 @@ def check_entry(entry, defaults, manifest_path, names, where, problems):
     }
 
 
-def check_file(path, file_name, problems):
-    """One .lunaaddon. Its Add Ons' summaries."""
+def check_file(path, file_name, problems, findings=None, ua_owned=False):
+    """One .lunaaddon. Its Add Ons' summaries. With findings, its content is scanned
+    into them too (scan_archive())."""
     try:
         with zipfile.ZipFile(path) as archive:
+            if findings is not None:
+                scan_archive(archive, file_name, findings, ua_owned)
             infos = {info.filename: info for info in archive.infolist()}
             manifest_path = find_manifest(infos)
             if manifest_path is None:
@@ -269,11 +422,11 @@ def check_file(path, file_name, problems):
             return []
         defaults = {"manufacturer": manifest.get("manufacturer", "")} if isinstance(manifest.get("manufacturer"), str) else {}
         for index, entry in enumerate(entries):
-            summary = check_entry(entry, defaults, manifest_path, names, f"{file_name}: Add On {index + 1}", problems)
+            summary = check_entry(entry, defaults, manifest_path, names, f"{file_name}: Add On {index + 1}", problems, findings)
             if summary:
                 add_ons.append(summary)
     else:
-        summary = check_entry(manifest, {}, manifest_path, names, f"{file_name}: the manifest's Add On", problems)
+        summary = check_entry(manifest, {}, manifest_path, names, f"{file_name}: the manifest's Add On", problems, findings)
         if summary:
             add_ons.append(summary)
     ids = [a["id"].lower() for a in add_ons]
@@ -282,10 +435,16 @@ def check_file(path, file_name, problems):
     return add_ons
 
 
-def check(text, registry=None, contact=None, contact_required=False):
-    """The result for a submitted repo URL: ok, problems, and what the workflow needs."""
-    result = {"ok": False, "input": text or "", "problems": [], "files": []}
+def check(text, registry=None, contact=None, contact_required=False, rights_confirmed=True):
+    """The result for a submitted repo URL: ok, problems, review (what a maintainer must
+    look at before it is listed), and what the workflow needs."""
+    result = {"ok": False, "input": text or "", "problems": [], "review": [], "files": []}
     problems = result["problems"]
+    findings = {}
+    if not rights_confirmed:
+        problems.append("Tick the box under \"Rights\" to confirm you made everything in the Add On or have permission to share it. "
+                        "(If this issue has no Rights box, edit it and add a line \"### Rights\" followed by "
+                        "\"- [x] I made everything in this Add On, or have permission to share it\".)")
     if contact is None and contact_required:
         problems.append("Enter a contact e-mail.")
     elif contact is not None and not is_email(contact):
@@ -303,6 +462,9 @@ def check(text, registry=None, contact=None, contact_required=False):
         problems.append("The repository is not public. The marketplace only lists public repositories.")
         return result
     owner, repo = info["full_name"].split("/", 1)   # GitHub's own spelling
+    ua_owned = owner.lower() in UA_OWNERS
+    scan_text(repo, "the repository's name", findings, ua_owned, names=True)
+    scan_text(info.get("description") or "", "the repository's description", findings, ua_owned)
     result.update({
         "full_name": info["full_name"],
         "url": f"https://github.com/{owner}/{repo}",
@@ -327,6 +489,8 @@ def check(text, registry=None, contact=None, contact_required=False):
         problems.append("The repository has no published release. Publish a release (not a draft or pre-release) with a .lunaaddon attached.")
         return result
     result["tag"] = release.get("tag_name", "")
+    scan_text(release.get("name") or "", "the release's name", findings, ua_owned)
+    scan_text(release.get("body") or "", "the release's notes", findings, ua_owned)
     if not is_tag(result["tag"]):
         problems.append(f"The latest release's tag ({result['tag']!r}) is not a tag name the marketplace can list.")
         return result
@@ -356,9 +520,12 @@ def check(text, registry=None, contact=None, contact_required=False):
             except (urllib.error.URLError, OSError) as error:
                 problems.append(f"{file_name} could not be downloaded ({error}).")
                 continue
-            add_ons = check_file(path, file_name, problems)
+            add_ons = check_file(path, file_name, problems, findings, ua_owned)
+            for add_on in add_ons:
+                scan_text(add_on["name"], f"{file_name}: an Add On's name", findings, ua_owned, names=True)
             result["files"].append({"name": file_name, "add_ons": add_ons})
 
+    result["review"] = content_review(findings)
     result["ok"] = not problems
     return result
 
@@ -376,6 +543,12 @@ def markdown(result):
         lines += [f"- {p}" for p in result["problems"]]
         lines.append("")
         lines.append("Fix the repository or its latest release, then edit this issue (any change) to check it again.")
+    if result.get("review"):
+        lines.append("")
+        lines.append("⚠️ A maintainer will review it before it is listed, because the content checks found:"
+                     if result["ok"] else "The content checks also found these, which a maintainer will review:")
+        lines.append("")
+        lines += [f"- {r}" for r in result["review"]]
     for file in result["files"]:
         if not file["add_ons"]:
             continue
@@ -406,7 +579,10 @@ def main():
     text = repo_from_issue(args.event) if args.event else args.repo
     universe = bool(args.event) and opened_by_universe(args.event)
     contact = None if universe else field_from_issue(args.event, CONTACT_FIELD) if args.event else args.contact
-    result = check(text, args.registry, contact, contact_required=bool(args.event) and not universe)
+    # Universe has its builders accept its terms; a form issue asks for the Rights box.
+    rights = universe or not args.event or ticked(field_from_issue(args.event, RIGHTS_FIELD))
+    result = check(text, args.registry, contact, contact_required=bool(args.event) and not universe,
+                   rights_confirmed=rights)
     result["comment"] = markdown(result)
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:

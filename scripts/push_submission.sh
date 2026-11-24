@@ -7,7 +7,8 @@
 #     message closes the issue once it reaches main, and comments a link that opens the pull request, filled in,
 #     for a maintainer to create (the uaudio-labs org does not let workflows create
 #     pull requests), or the pull request's own link once one is open; and, through
-#     $GITHUB_OUTPUT, gives the publish job the branch and the pull request's title and body.
+#     $GITHUB_OUTPUT, gives the publish job the branch, the pull request's title and body,
+#     and review=true when the content checks found something a maintainer must look at.
 # A repo whose branch was pushed for another issue that is still open is not submitted
 # twice; once that issue is closed, a new submission takes the branch over.
 #
@@ -27,6 +28,7 @@ tag="$(jq -r '.tag' "$RESULT")"
 listed_tag="$(jq -r '.listed_tag // empty' "$RESULT")"
 updating="$(jq -r 'has("listed_tag")' "$RESULT")"
 slug="$(jq -r '.slug' "$RESULT")"
+review="$(jq -r '(.review // []) | length > 0' "$RESULT")"
 branch="$(jq -r '.branch' "$RESULT")"
 # GitHub's own spelling of the repo, which check_add_on.py lowered; refuse anything else.
 [[ "$slug" =~ ^[a-z0-9-]+\.[a-z0-9._-]+$ && "$branch" =~ ^submit/[a-z0-9-]+-[a-z0-9._-]+$ ]] || {
@@ -69,6 +71,7 @@ if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     {
         echo "branch=$branch"
         echo "title=$title"
+        echo "review=$review"
         delim="EOF_$(openssl rand -hex 16)"
         printf 'body<<%s\n%s\n%s\n' "$delim" "$body" "$delim"
     } >> "$GITHUB_OUTPUT"

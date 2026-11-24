@@ -8,7 +8,11 @@
 # App, ua-marketplace-publisher (secrets PUBLISHER_APP_ID and PUBLISHER_APP_KEY): it
 # opens the pull request, waits for its checks and merges it. Because the merge is
 # made with the App's token rather than github.token, it triggers build-manifest.yml
-# on main.
+# on main. A submission the content checks flagged (check_add_on.py's "review": possible
+# profanity, other companies' marks, bundled recordings, confidential notices) gets its
+# pull request but is not merged: it opens as a draft labelled needs-review for a
+# maintainer, and the branch stays held while an open or declined pull request from it
+# has the label, even if a later edit of the issue comes back clean.
 # Only the publish job sees the App's key.
 #
 # The issue is untrusted input: the workflow runs only this repo's main branch, reads
@@ -38,6 +42,7 @@ jobs:
       branch: ${{ steps.push.outputs.branch }}
       title: ${{ steps.push.outputs.title }}
       body: ${{ steps.push.outputs.body }}
+      review: ${{ steps.push.outputs.review }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,16 +87,40 @@ jobs:
           BRANCH: ${{ needs.submit.outputs.branch }}
           TITLE: ${{ needs.submit.outputs.title }}
           BODY: ${{ needs.submit.outputs.body }}
+          REVIEW: ${{ needs.submit.outputs.review }}
         run: |
           set -euo pipefail
           [[ "$BRANCH" =~ ^submit/[a-z0-9-]+-[a-z0-9._-]+$ ]] || { echo "unexpected branch '$BRANCH'" >&2; exit 1; }
 
+          # Held for a maintainer when this run's checks flagged it, when a pull request
+          # from the branch that is open or was declined (closed unmerged) carries the
+          # label, or when either answer is missing: fail closed, never merge by default.
+          # One a maintainer approved and merged doesn't hold later updates.
+          labelled="$(gh pr list --head "$BRANCH" --state all --label needs-review --json state \
+              --jq 'any(.[]; .state != "MERGED")')"
+          hold=false
+          [[ "$REVIEW" != "false" || "$labelled" != "false" ]] && hold=true
+
           pr="$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')"
           if [[ -z "$pr" ]]; then
-              url="$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$BODY")"
+              # A held one opens as a draft, which gh pr merge refuses, so it can't be
+              # merged even if this run stops before labelling it.
+              draft=()
+              [[ "$hold" == "true" ]] && draft=(--draft)
+              url="$(gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$BODY" "${draft[@]}")"
               pr="${url##*/}"
+          else
+              gh api -X PATCH "repos/$GH_REPO/pulls/$pr" -f title="$TITLE" -f body="$BODY" >/dev/null
           fi
           echo "Pull request #$pr"
+
+          if [[ "$hold" == "true" ]]; then
+              gh label create needs-review --force --color D93F0B \
+                  --description "Flagged by the content checks; a maintainer merges it by hand"
+              gh api -X POST "repos/$GH_REPO/issues/$pr/labels" -f 'labels[]=needs-review' >/dev/null
+              gh issue comment "$ISSUE" --body "#$pr is waiting for a maintainer's review before it is listed, so it was not merged automatically."
+              exit 0
+          fi
 
           # Checks take a moment to register on a new pull request or push.
           for _ in $(seq 1 24); do
@@ -104,4 +133,9 @@ jobs:
               exit 1
           fi
 
+          # A maintainer may have labelled it while its checks ran.
+          if [[ "$(gh pr view "$pr" --json labels,isDraft --jq '.isDraft or any(.labels[]; .name == "needs-review")')" != "false" ]]; then
+              echo "#$pr is held for review"
+              exit 0
+          fi
           gh pr merge "$pr" --merge
