@@ -1,0 +1,73 @@
+# Other companies' brands and product names that hold a submission for a maintainer's
+# review when they appear in an Add On's name or its repo's name (check_add_on.py,
+# content_review()). A name like "Pro Tools Shortcuts" or "SSL Bus Comp" can suggest an
+# endorsement the builder doesn't have; a maintainer decides whether it's fair use.
+#
+# One name per line, matched case-insensitively as whole words. Lines starting with #
+# are ignored. Leave out names that are also everyday words ("Reaper", "Reason",
+# "Waves", "Logic", a bare "Apollo"), which would flag honest Add Ons. Repos owned by Universal Audio's
+# own accounts (UA_OWNERS in check_add_on.py) are not checked against this list.
+
+# Universal Audio's own marks, for Add Ons that aren't UA's
+Universal Audio
+UAD
+Apollo Twin
+Apollo Solo
+Apollo x4
+Apollo x6
+Apollo x8
+Apollo x16
+Teletronix
+LA-2A
+LA-3A
+1176
+Pultec
+Fairchild
+Ampex
+Neve
+Solid State Logic
+SSL
+Manley
+Studer
+# Other DAWs and audio companies
+Pro Tools
+Avid Technology
+Ableton
+Logic Pro
+Cubase
+Nuendo
+Steinberg
+FL Studio
+Image-Line
+Bitwig
+Studio One
+PreSonus
+Reason Studios
+FabFilter
+iZotope
+Native Instruments
+Kontakt
+Komplete
+Spectrasonics
+Omnisphere
+Arturia
+Soundtoys
+Slate Digital
+Plugin Alliance
+Brainworx
+Antares
+Auto-Tune
+Melodyne
+Celemony
+Roland
+TR-808
+TR-909
+Moog
+Korg
+Yamaha
+Fender
+Marshall
+Ampeg
+Spotify
+Splice
+Dolby

@@ -29,6 +29,19 @@ body:
       placeholder: you@example.com
     validations:
       required: true
+  - type: checkboxes
+    id: rights
+    attributes:
+      label: Rights
+      description: >-
+        Universal Audio lists only Add Ons their builders are free to share. Submissions with
+        recordings, MIDI, other companies' product names or confidential material are reviewed
+        by hand, and a listed Add On can be taken down if its owner asks.
+      options:
+        - label: >-
+            I made everything in this Add On (code, sounds, images, fonts and text), or have
+            permission to share it, and it contains nothing confidential.
+          required: true
   - type: textarea
     id: notes
     attributes:

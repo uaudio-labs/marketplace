@@ -31,8 +31,21 @@ The contact e-mail is an e-mail address. The repository is public, its latest re
 `.lunaaddon`. Each `.lunaaddon` is a zip whose shallowest `manifest.json` (outside `__MACOSX`)
 declares at least one Add On with `name`, `id`, exactly one of `html` and `url`, and `width` and
 `height` when it opens in a window (the default `target`). The `html` and `icon` files it names
-must be inside the `.lunaaddon`, and no two Add Ons in it may share an `id`. Nothing in the
-release is run.
+must be inside the `.lunaaddon`, and no two Add Ons in it may share an `id`. The issue's
+**Rights** box must be ticked, confirming you made everything in the Add On or have permission
+to share it. Nothing in the release is run.
+
+The content checks then look for things a person should judge, and if they find any, the
+submission waits for a maintainer's review instead of being listed automatically (it is not
+refused):
+
+- profanity or slurs in the repository's name or description, the release's name or notes, an
+  Add On's name, or a text file in the `.lunaaddon`;
+- another company's brand or product name (Pro Tools, SSL, 1176, …) in the repository's or an
+  Add On's name, which can suggest an endorsement;
+- audio, video, MIDI or sample files in the `.lunaaddon`, or audio or video embedded in its
+  code, which may be someone else's recordings;
+- notices marking content as confidential or not for distribution.
 
 Run the same check locally:
 
@@ -62,6 +75,15 @@ python3 scripts/check_add_on.py https://github.com/<owner>/<repo>
 - To accept a submission, follow the link in the issue's comment to create the pull request,
   review the Add On, and merge. To decline, close the issue with a comment and delete its
   `submit/` branch.
+- A submission the content checks flagged gets its pull request but is not merged: it opens
+  as a draft labelled `needs-review`, and the issue's comment lists what was found (profanity is
+  masked). To approve it, review the Add On, mark the pull request ready for review and merge
+  it. To decline, close the pull request and the issue. While an open or declined pull request
+  from the branch has the label, editing the issue updates the pull request but never merges
+  it, so a declined repository is always reviewed by hand; one you merged is not held again.
+- The content checks' word lists are `scripts/rules/blocked_words.txt` (profanity and slurs)
+  and `scripts/rules/trademarks.txt` (other companies' names). Change them in a pull request;
+  the **Build manifest** check runs `tests/` on every pull request.
 - To remove an Add On, delete its file from `add_ons/`, or use a takedown request.
 - The **Submit Take Down** workflow handles issues labelled `add-on-takedown` (opened with
   [the takedown form](../../issues/new?template=submit-take-down.yml)): it runs

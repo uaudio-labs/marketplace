@@ -1,0 +1,50 @@
+# Words that hold a submission for a maintainer's review when they appear in what users
+# see: an Add On's name, the repo's name and description, the release's name and notes,
+# or a text file inside the .lunaaddon (check_add_on.py, content_review()).
+#
+# One word or phrase per line, matched case-insensitively as a whole word, with common
+# endings (s, es, ed, er, ers, ing, in) allowed. Lines starting with # are ignored.
+# Keep this to strong profanity and slurs: mild words ("damn", "hell", "crap") and
+# words that are also ordinary words or names ("cock", "dick", "spic", "chink") flag
+# honest Add Ons for nothing.
+# A match never rejects a submission; it stops it being merged automatically.
+fuck
+motherfuck
+shit
+shitty
+bullshit
+cunt
+cocksuck
+dickhead
+pussy
+twat
+wank
+wanker
+bollocks
+asshole
+arsehole
+bastard
+bitch
+whore
+slut
+jizz
+cumshot
+dildo
+porn
+nigger
+nigga
+faggot
+fag
+dyke
+tranny
+retard
+spastic
+spaz
+gook
+kike
+paki
+wetback
+coon
+raghead
+towelhead
+nazi
