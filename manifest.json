@@ -25,6 +25,10 @@
             "tag": "v1.0.1"
         },
         {
+            "github": "https://github.com/cp666-dev/spark-mcp",
+            "tag": "v1.0.1"
+        },
+        {
             "github": "https://github.com/Djruzicka/Noir-Synth",
             "tag": "v1.0.0"
         },
