@@ -153,6 +153,10 @@
             "tag": "v0.2.2"
         },
         {
+            "github": "https://github.com/MitchStein/global-stereo-to-mono",
+            "tag": "v0.3.0"
+        },
+        {
             "github": "https://github.com/neiliussattinius/swipe-comping",
             "tag": "v0.2.2"
         },
