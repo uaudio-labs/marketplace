@@ -29,6 +29,10 @@
             "tag": "v1.0.1"
         },
         {
+            "github": "https://github.com/dawnchorus-audio/ai-voice-sound-unit",
+            "tag": "v0.1.0"
+        },
+        {
             "github": "https://github.com/Djruzicka/Noir-Synth",
             "tag": "v1.0.0"
         },
