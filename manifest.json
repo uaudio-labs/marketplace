@@ -185,6 +185,10 @@
             "tag": "v0.2.4"
         },
         {
+            "github": "https://github.com/rmcgaughey-prog/luna-track-show-hide",
+            "tag": "v0.4.1"
+        },
+        {
             "github": "https://github.com/shawngrona/luna-comp-machine",
             "tag": "v1.0.0"
         },
