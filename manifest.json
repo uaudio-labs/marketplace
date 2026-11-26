@@ -201,6 +201,10 @@
             "tag": "v0.4.1"
         },
         {
+            "github": "https://github.com/rmcgaughey-prog/Quantize-LUNA-Add-On",
+            "tag": "v0.4.2"
+        },
+        {
             "github": "https://github.com/shawngrona/luna-comp-machine",
             "tag": "v1.0.0"
         },
