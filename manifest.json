@@ -265,6 +265,10 @@
             "tag": "v1.0.0"
         },
         {
+            "github": "https://github.com/voltperoctave/percussive-maintenance-luna",
+            "tag": "v1.0.0"
+        },
+        {
             "github": "https://github.com/vvozmitsel-uaudio/sound-browser",
             "tag": "v0.2.1"
         }
