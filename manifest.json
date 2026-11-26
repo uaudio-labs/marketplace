@@ -41,6 +41,10 @@
             "tag": "v0.1.0"
         },
         {
+            "github": "https://github.com/denisb3142/midi-list-editor",
+            "tag": "v1.0.0"
+        },
+        {
             "github": "https://github.com/Djruzicka/Noir-Synth",
             "tag": "v1.0.0"
         },
