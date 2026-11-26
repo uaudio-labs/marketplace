@@ -1,6 +1,10 @@
 {
     "add_ons": [
         {
+            "github": "https://github.com/alexd0001/luna-settings-reset-downloads",
+            "tag": "v0.2.1"
+        },
+        {
             "github": "https://github.com/audioplanet/luna-default-inserts",
             "tag": "v0.1.0"
         },
