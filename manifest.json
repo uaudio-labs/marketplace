@@ -129,6 +129,10 @@
             "tag": "v0.1.0"
         },
         {
+            "github": "https://github.com/iamadan/LUNA-to-NI-Kontrol-Mk3",
+            "tag": "v2.4.1"
+        },
+        {
             "github": "https://github.com/jacobsilver2/track-view",
             "tag": "v0.1.0"
         },
