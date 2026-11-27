@@ -129,6 +129,10 @@
             "tag": "V1.0.0"
         },
         {
+            "github": "https://github.com/FormDevelopment/signal-map",
+            "tag": "v0.1.7"
+        },
+        {
             "github": "https://github.com/fourdogslong/loop-lock",
             "tag": "v0.3.17"
         },
