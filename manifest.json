@@ -141,6 +141,10 @@
             "tag": "v0.1.0"
         },
         {
+            "github": "https://github.com/humphrey6120-bit/gainstaging",
+            "tag": "v1.0.1"
+        },
+        {
             "github": "https://github.com/iamadan/LUNA-to-NI-Kontrol-Mk3",
             "tag": "v2.4.1"
         },
