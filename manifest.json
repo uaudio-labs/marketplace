@@ -301,6 +301,10 @@
             "tag": "v1.0.0"
         },
         {
+            "github": "https://github.com/voltperoctave/two-timer-luna",
+            "tag": "v1.0.0"
+        },
+        {
             "github": "https://github.com/vvozmitsel-uaudio/sound-browser",
             "tag": "v0.2.1"
         }
