@@ -145,6 +145,10 @@
             "tag": "v1.0.1"
         },
         {
+            "github": "https://github.com/humphrey6120-bit/recording-level",
+            "tag": "v1.0.0"
+        },
+        {
             "github": "https://github.com/iamadan/LUNA-to-NI-Kontrol-Mk3",
             "tag": "v2.4.1"
         },
